@@ -1,14 +1,11 @@
-const asyncHandler = (requestHandler) => {
-    (req,res,next)=>{
-        Promise.resolve(requestHandler(req,res,next)).catch((error)=>next(error))
+const asyncHandler = (requestHandlerFun) => {
+    return (req,res,next)=>{
+        Promise.resolve(requestHandlerFun(req,res,next)).catch((error)=>next(error))
     }
 };
 export { asyncHandler };
 
-/*const asyncHandler = ()=>{}
-const asyncHandler = (fun)=>{()=>{}}
-const asyncHandler = (fun)=>()=>{}
-const asyncHandler = (fun)=>async()=>{}*/
+
 
 // const asyncHandler = (fun) => async (error, req, res, next) => {
 //   try {
