@@ -5,6 +5,7 @@ import { cloudinaryUpload } from "../utils/cloudinary.js";
 import { Apiresponse } from "../utils/apiresponse.js";
 import jwt from "jsonwebtoken";
 import * as fs from "fs";
+import mongoose from "mongoose";
 
 export const registerUser = asyncHandler(async function (req, res, next) {
   const { fullName, email, userName, password } = req.body;
@@ -270,4 +271,126 @@ export const updateCoverImage = asyncHandler(async function (req, res, next) {
     { new: true }
   ).select("-password -refreshToken");
   res.status(200).json(200, user, "coverImage updated successfully");
+});
+export const getCurrentUserProfile = asyncHandler(
+  async function (req, res, next) {
+    const userName = req.params;
+    if (!userName.trim()) {
+      throw new Apierror(401, "userName is not complete");
+    }
+    const channel = User.aggregate([
+      {
+        $match: {
+          userName: userName?.toLowerCase(),
+        },
+      },
+      {
+        $lookup: {
+          from: "subsciptions",
+          localField: "_id",
+          foreignField: "channel",
+          as: "subscribers",
+        },
+      },
+      {
+        $lookup: {
+          from: "subsciptions",
+          localField: "_id",
+          foreignField: "subscriber",
+          as: "subscribedTo",
+        },
+      },
+      {
+        $addFields: {
+          subscribersCount: {
+            $size: "$subscribers",
+          },
+          subscibedToCount: {
+            $size: "$subscribedTo",
+          },
+          isSubscribed: {
+            $cond: {
+              if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+              then: true,
+              else: false,
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          fullName: 1,
+          userName: 1,
+          subscribersCount: 1,
+          subscribedToCount: 1,
+          isSubscribed: 1,
+          avatar: 1,
+          coverImage: 1,
+          email: 1,
+        },
+      },
+    ]);
+    if (!channel?.length) {
+      throw new ApiError(404, "channel does not exists");
+    }
+
+    return res
+      .status(200)
+      .json(
+        new Apiresponse(200, channel[0], "user channel fetched successfully")
+      );
+  }
+);
+export const userWatchHistory = asyncHandler(async function (req, res, next) {
+  const user = await User.aggregate([
+    {
+      $match: {
+        _id: mongoose.Types.ObjectId(req.user._id),
+      },
+    },
+    {
+      $lookup: {
+        from: "videos",
+        localField: "watchHistory",
+        foreignField: "_id",
+        as: "watchHistory",
+        pipeline: [
+          {
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+              pipeline: [
+                {
+                  $product: {
+                    fullName: 1,
+                    userName: 1,
+                    email: 1,
+                  },
+                },
+              ],
+            },
+          },
+          {
+            $addFields: {
+              $first: "$owner",
+            },
+          },
+        ],
+      },
+    },
+  ]);
+  if (!user) {
+    throw new Apierror(401, "user not fetched");
+  }
+  return res
+    .status(200)
+    .json(
+      new Apiresponse(
+        200,
+        user[0].watchHistory,
+        "watchHistory fetched successfully"
+      )
+    );
 });

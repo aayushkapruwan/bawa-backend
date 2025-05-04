@@ -22,7 +22,7 @@ const userSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    watchHistory: [
+    watchHistory: [//array of object ids
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Video",
