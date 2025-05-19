@@ -1,8 +1,8 @@
-import { asyncHandler } from "../utils/asynchandler.js";
-import { Apierror } from "../utils/apierror.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { Apierror } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { cloudinaryUpload } from "../utils/cloudinary.js";
-import { Apiresponse } from "../utils/apiresponse.js";
+import { Apiresponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import * as fs from "fs";
 import mongoose from "mongoose";
@@ -272,7 +272,7 @@ export const updateCoverImage = asyncHandler(async function (req, res, next) {
   ).select("-password -refreshToken");
   res.status(200).json(200, user, "coverImage updated successfully");
 });
-export const getCurrentUserProfile = asyncHandler(
+export const getCurrentChannelProfile = asyncHandler(
   async function (req, res, next) {
     const userName = req.params;
     if (!userName.trim()) {
@@ -363,7 +363,7 @@ export const userWatchHistory = asyncHandler(async function (req, res, next) {
               as: "owner",
               pipeline: [
                 {
-                  $product: {
+                  $project: {
                     fullName: 1,
                     userName: 1,
                     email: 1,
@@ -374,7 +374,9 @@ export const userWatchHistory = asyncHandler(async function (req, res, next) {
           },
           {
             $addFields: {
-              $first: "$owner",
+              owner: {
+                $first: "$owner",
+              },
             },
           },
         ],
